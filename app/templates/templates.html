@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>HTML 템플릿</h1>
+<section class="card">
+  <p class="muted">AI 로 만든 단일 <code>.html</code> 파일을 등록합니다. 파일 안에 <code>&lt;form&gt;</code> 이 있어야 하며, 첫 번째 폼의 제출이 자동으로 CRM 명단에 저장됩니다.</p>
+  <form class="inline" onsubmit="return upload(event)">
+    <input name="name" placeholder="템플릿 이름 (선택)">
+    <input name="file" type="file" accept=".html,text/html" required>
+    <button type="submit">등록</button>
+  </form>
+</section>
+<section class="card">
+<table>
+  <thead><tr><th>ID</th><th>이름</th><th>파일</th><th>크기</th><th>등록일</th><th></th></tr></thead>
+  <tbody>
+  {% for t in items %}
+  <tr><td>{{ t.id }}</td><td>{{ t.name }}</td><td>{{ t.original_filename }}</td><td>{{ t.size_bytes }} B</td>
+      <td>{{ t.created_at | kst }}</td>
+      <td><button class="small" onclick="preview({{ t.id }})">미리보기</button>
+          <button class="danger small" onclick="del('/admin/api/templates/{{ t.id }}')">삭제</button></td></tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">등록된 템플릿이 없습니다.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</section>
+<section class="card" id="previewBox" hidden>
+  <div class="row between"><h2>미리보기</h2><button class="small" onclick="document.getElementById('previewBox').hidden=true">닫기</button></div>
+  <iframe id="previewFrame" sandbox="allow-scripts allow-forms" style="width:100%;height:600px;border:1px solid #ddd;border-radius:8px"></iframe>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+async function upload(ev){
+  ev.preventDefault();
+  const fd=new FormData(ev.target);
+  const r=await fetch('/admin/api/templates',{method:'POST',body:fd,credentials:'same-origin'});
+  const body=await r.json().catch(()=>({}));
+  if(r.ok) location.reload(); else flash(body.detail||'등록 실패',true);
+  return false;
+}
+function preview(id){
+  document.getElementById('previewBox').hidden=false;
+  document.getElementById('previewFrame').src='/admin/api/templates/'+id+'/preview';
+}
+</script>
+{% endblock %}

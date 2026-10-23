@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}리드마그넷 CRM{% endblock %}</title>
+<link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/admin">리드마그넷 CRM</a>
+  {% if operator %}
+  <nav>
+    <a href="/admin">대시보드</a>
+    <a href="/admin/templates">HTML 템플릿</a>
+    <span class="muted">{{ operator.email }}</span>
+    <button class="link" onclick="api('POST','/admin/api/auth/logout').then(()=>location.href='/admin/login')">로그아웃</button>
+  </nav>
+  {% endif %}
+</header>
+<main class="wrap">
+  <div id="flash" class="flash" hidden></div>
+  {% block content %}{% endblock %}
+</main>
+<script src="/static/admin.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

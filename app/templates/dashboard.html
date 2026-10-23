@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row between">
+  <h1>캠페인</h1>
+  <form class="inline" onsubmit="return createCampaign(event)">
+    <input name="name" placeholder="새 캠페인 이름" required>
+    <button type="submit">캠페인 만들기</button>
+  </form>
+</div>
+<section class="card">
+<table>
+  <thead><tr><th>캠페인</th><th>방문</th><th>방문자</th><th>신청</th><th>전환율</th><th></th></tr></thead>
+  <tbody>
+  {% for c, m in rows %}
+  <tr>
+    <td><a href="/admin/campaigns/{{ c.id }}">{{ c.name }}</a></td>
+    <td>{{ m.visits }}</td><td>{{ m.visitors }}</td><td>{{ m.submissions }}</td>
+    <td>{{ '%.1f' % (m.conversion_rate*100) }}%</td>
+    <td><button class="danger small" onclick="del('/admin/api/campaigns/{{ c.id }}')">삭제</button></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">아직 캠페인이 없습니다. 먼저 <a href="/admin/templates">HTML 템플릿</a>을 등록한 뒤 캠페인을 만드세요.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</section>
+
+<h2>채널별 성과 (전체)</h2>
+<section class="card">
+{% include "_channels.html" %}
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+async function createCampaign(ev){
+  ev.preventDefault();
+  const r=await api('POST','/admin/api/campaigns',{name:ev.target.name.value});
+  if(r.ok) location.href='/admin/campaigns/'+r.body.id; else flash(r.body.detail||'실패',true);
+  return false;
+}
+</script>
+{% endblock %}

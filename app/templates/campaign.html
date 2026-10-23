@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }} · 리드마그넷 CRM{% endblock %}
+{% block content %}
+<p><a href="/admin">← 캠페인 목록</a></p>
+<h1>{{ campaign.name }}</h1>
+
+<section class="stats">
+  <div class="stat"><div class="label">방문</div><div class="value">{{ stats.visits }}</div></div>
+  <div class="stat"><div class="label">방문자</div><div class="value">{{ stats.visitors }}</div></div>
+  <div class="stat"><div class="label">신청</div><div class="value">{{ stats.submissions }}</div></div>
+  <div class="stat"><div class="label">전환율</div><div class="value">{{ '%.1f' % (stats.conversion_rate*100) }}%</div></div>
+</section>
+
+<h2>채널별 성과</h2>
+<section class="card">{% with channels=stats.channels %}{% include "_channels.html" %}{% endwith %}</section>
+
+<div class="row between"><h2>커스텀 신청 폼</h2></div>
+<section class="card">
+  <form class="inline" onsubmit="return createForm(event)">
+    <input name="name" placeholder="폼 이름" required>
+    <select name="template_id" required>
+      <option value="">HTML 템플릿 선택</option>
+      {% for t in tpls %}<option value="{{ t.id }}">#{{ t.id }} {{ t.name }}</option>{% endfor %}
+    </select>
+    <input name="success_message" placeholder="성공 메시지 (선택)">
+    <button type="submit" {% if not tpls %}disabled title="먼저 HTML 템플릿을 등록하세요"{% endif %}>폼 만들기</button>
+  </form>
+</section>
+
+{% for f, links in forms %}
+<section class="card">
+  <div class="row between">
+    <h3>{{ f.name }} <span class="muted">slug: {{ f.slug }}</span>
+      {% if not f.is_active %}<span class="chip off">비활성</span>{% endif %}</h3>
+    <div>
+      <button class="small" onclick="toggle({{ f.id }}, {{ 'false' if f.is_active else 'true' }})">{{ '비활성화' if f.is_active else '활성화' }}</button>
+      <button class="danger small" onclick="del('/admin/api/forms/{{ f.id }}')">삭제</button>
+    </div>
+  </div>
+  <p>공개 URL: <a href="{{ f.public_url }}" target="_blank" rel="noopener">{{ f.public_url }}</a></p>
+  <table>
+    <thead><tr><th>채널</th><th>배포 링크</th><th></th></tr></thead>
+    <tbody>
+    {% for ch in channels %}
+      {% set link = links | selectattr('channel.value', 'equalto', ch) | first %}
+      <tr><td><span class="chip {{ ch }}">{{ ch }}</span></td>
+        <td>{% if link %}<code>{{ link.url }}</code>{% else %}<span class="muted">아직 없음</span>{% endif %}</td>
+        <td>{% if link %}<button class="small" onclick="copy('{{ link.url }}')">복사</button>
+            {% else %}<button class="small" onclick="makeLink({{ f.id }}, '{{ ch }}')">링크 생성</button>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+
+<h2>신청자 명단 (CRM) <span class="muted">최근 200건</span></h2>
+<section class="card">
+<table>
+  <thead><tr><th>#</th><th>폼</th><th>채널</th><th>신청 내용</th><th>일시</th></tr></thead>
+  <tbody>
+  {% for l in leads %}
+  <tr><td>{{ l.id }}</td><td>{{ form_names.get(l.form_id, l.form_id) }}</td>
+      <td><span class="chip {{ l.channel }}">{{ l.channel }}</span></td>
+      <td class="kv">{% for k, v in l.data.items() %}<div><b>{{ k }}</b>: {{ v }}</div>{% endfor %}</td>
+      <td>{{ l.created_at | kst }}</td></tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">아직 신청이 없습니다.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const CID={{ campaign.id }};
+async function createForm(ev){
+  ev.preventDefault();
+  const f=ev.target;
+  const r=await api('POST','/admin/api/forms',{campaign_id:CID,template_id:Number(f.template_id.value),name:f.name.value,success_message:f.success_message.value||null});
+  if(r.ok) location.reload(); else flash(r.body.detail||'실패',true);
+  return false;
+}
+async function makeLink(formId, channel){
+  const r=await api('POST','/admin/api/forms/'+formId+'/links',{channel});
+  if(r.ok) location.reload(); else flash(r.body.detail||'실패',true);
+}
+async function toggle(formId, active){
+  const r=await api('PATCH','/admin/api/forms/'+formId,{is_active:active});
+  if(r.ok) location.reload(); else flash(r.body.detail||'실패',true);
+}
+function copy(t){ navigator.clipboard.writeText(t).then(()=>flash('복사했습니다.')); }
+</script>
+{% endblock %}

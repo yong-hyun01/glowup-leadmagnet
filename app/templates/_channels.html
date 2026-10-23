@@ -1,0 +1,12 @@
+<table>
+  <thead><tr><th>채널</th><th>방문</th><th>방문자</th><th>신청</th><th>전환율</th></tr></thead>
+  <tbody>
+  {% for ch in channels %}
+  <tr><td><span class="chip {{ ch.channel }}">{{ ch.channel }}</span></td>
+      <td>{{ ch.visits }}</td><td>{{ ch.visitors }}</td><td>{{ ch.submissions }}</td>
+      <td>{{ '%.1f' % (ch.conversion_rate*100) }}%</td></tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">아직 수집된 데이터가 없습니다.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
